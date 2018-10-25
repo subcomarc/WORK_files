@@ -1,0 +1,512 @@
+hist(data$rtOr)
+data$lagC <- "early"
+data$lagC[data$lag>=5] <- "late"
+data$lagC <- factor(data$lagC)
+## Fake lag 0 for no T1
+data$lagComplete <- as.numeric(data$lag)
+data$lagComplete[data$nface==1] <- 0
+data$lagComplete <- ordered(data$lagComplete)
+data$lagCatComplete <- "early"
+data$lagCatComplete[data$lag>=5] <- "late"
+data$lagCatComplete[data$nface==1] <- "a_noT1" # a for alphebetical order for plotting purposes
+data$lagCatComplete <- factor(data$lagCatComplete)
+save(data, file='blinkData.R')
+#+END_SRC
+#+BEGIN_SRC R
+load('blinkData.R')
+#+END_SRC
+data <- read.table(file="C:/Users/lscpuser/Google Drive/R/BlinkTable.xlsx")
+data <- droplevels(data[data$SubName!=101,])
+data$suj <- data$SubName
+sujs <- unique(data$suj); length(sujs)
+data <- read.table(file="C:/Users/lscpuser/Google Drive/R/BlinkTable.xlsx")
+data <- read.table(file="C:/Users/lscpuser/Google Drive/R/BlinkTable.txt")
+data <- read.table(file="C:/Users/lscpuser/Google Drive/R/BlinkTable.txt", header=T)
+data <- droplevels(data[data$SubName!=101,])
+data$suj <- data$SubName
+sujs <- unique(data$suj); length(sujs)
+ntrial <- data$WhichTrial
+nblock <- data$WhichBlock
+data$target1 <- 'neutral'
+data$target1[data$FaceCombination== 3 | data$FaceCombination == 4] <- "angry"
+data$target2 <- 'neutral'
+data$target2[data$FaceCombination== 1 | data$FaceCombination == 4 | data$FaceCombination == 5] <- "angry"
+data$nface <- 2
+data$nface[data$FaceCombination>4] <- 1
+data$accn <- data$FacesCorrect
+data$accOr <- data$AllAnswers
+data$rtOr <- data$RTimeWS*1000
+hist(data$rtOr[data$rtOr < 10000])
+data$rtn <- data$RTimeHM*1000
+hist(data$rtn[data$rtn<20000])
+## 3: high: 2: medium; 1: low
+data$hypno <- data$HLRAWcol
+data$hypnoC <- data$HLcol
+data$lag <- data$AllLags
+data$soa <- data$AllSOAs
+data$lag <- ordered(data$lag)
+data$target1 <- factor(data$target1)
+data$target2 <- factor(data$target2)
+data$suj <- factor(data$suj)
+## outliers
+e <- evalq(aggregate(list(accn=accn, accOr=accOr, hypnoC=hypnoC), list(suj=suj), mean), data)
+evalq(plot(accn, accOr, col=hypnoC,type='p', xlim=c(0, 1), ylim=c(0,1)), e)
+l <- lm(accOr~accn, e)
+abline(l)
+e$acc <- (e$accOr+e$accn)/2
+hist(e$acc); mean(e$acc); sd(e$acc)
+sum(e$acc < .6)
+bad <- as.vector(e$suj[e$acc < .6])
+e <- e[!e$suj %in% bad,]
+min(e$acc); hist(e$acc)
+data <- droplevels(data[!data$suj %in% bad,])
+sum(data$rtOr > 4000)
+hist(data$rtOr[data$rtOr<4000])
+e <- evalq(aggregate(list(medianRtOr=rtOr, hypno=hypno, hypnoC=hypnoC), list(suj=suj), median),
+data[data$rtOr < 10000,])
+evalq(plot(hypno, medianRtOr, col=hypnoC,type='p'), e)
+boxplot(e$medianRtOr)
+sd(e$medianRtOr)
+limRt <- mean(e$medianRtOr)+3*sd(e$medianRtOr)
+bad <- as.vector(e$suj[e$medianRtOr > limRt])
+data <- droplevels(data[!data$suj %in% bad,])
+e <- evalq(aggregate(list(medianRtOr=rtOr, hypno=hypno, hypnoC=hypnoC), list(suj=suj), median),
+data[data$rtOr < 10000,])
+e$sd <- evalq(aggregate(rtOr, list(suj=suj), sd), data)$x
+data <- merge(data, e)
+data$outlier <- data$rtOr > data$medianRtOr + 3 * data$sd
+e <- evalq(aggregate(list(outlier=outlier), list(suj=suj), mean), data)
+any(e$outlier>.1); max(e$outlier)
+data <- droplevels(data[!data$outlier & data$rtOr>150,])
+hist(data$rtOr[data$rtOr < 300])
+data$hypnoC <- ordered(data$hypnoC)
+hist(data$rtOr)
+data$lagC <- "early"
+data$lagC[data$lag>=5] <- "late"
+data$lagC <- factor(data$lagC)
+## Fake lag 0 for no T1
+data$lagComplete <- as.numeric(data$lag)
+data$lagComplete[data$nface==1] <- 0
+data$lagComplete <- ordered(data$lagComplete)
+data$lagCatComplete <- "early"
+data$lagCatComplete[data$lag>=5] <- "late"
+data$lagCatComplete[data$nface==1] <- "a_noT1" # a for alphebetical order for plotting purposes
+data$lagCatComplete <- factor(data$lagCatComplete)
+save(data, file='blinkData.R')
+#+END_SRC
+#+BEGIN_SRC R
+load('blinkData.R')
+#+END_SRC
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, lag=lag), mean),
+data[data$nface==2,])
+f <- evalq(aggregate(list(accOr=accOr, accn=accn), list(lag=lag), mean), e)
+eprime <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj), mean), data[data$nface==1,])
+fprime <- mean(eprime$accOr)
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, lag=lag, target1=target1, target2=target2), mean),
+data[data$nface==2,])
+f <- evalq(aggregate(list(accOr=accOr, accn=accn), list(lag=lag, target1=target1, target2=target2), mean), e)
+par(mfrow=c(2,2))
+evalq(interaction.plot(lag, target1, accOr, main="ACC OR T2 angry", ylim=c(.6, .90)), f[f$target2=="angry",])
+evalq(interaction.plot(lag, target1, accOr, main="ACC OR T2 neutral", ylim=c(.6, .90)), f[f$target2=="neutral",])
+evalq(interaction.plot(lag, target1, accn, main="ACC N T2 angry", ylim=c(.4, 1)), f[f$target2=="angry",])
+evalq(interaction.plot(lag, target1, accn, main="ACC NT2 neutral", ylim=c(.4, 1)), f[f$target2=="neutral",])
+par(mfrow=c(2,1))
+evalq(interaction.plot(lag, target1, accOr, main="ACC OR T2 angry", ylim=c(.6, .90)), f[f$target2=="angry",])
+evalq(interaction.plot(lag, target1, accOr, main="ACC OR T2 neutral", ylim=c(.6, .90)), f[f$target2=="neutral",])
+par(mfrow=c(1,2))
+evalq(interaction.plot(lag, target1, accOr, main="ACC OR T2 angry", ylim=c(.6, .90)), f[f$target2=="angry",])
+evalq(interaction.plot(lag, target1, accOr, main="ACC OR T2 neutral", ylim=c(.6, .90)), f[f$target2=="neutral",])
+par(mfrow=c(1,1))
+evalq(interaction.plot(lag, target1, accOr, main="ACC OR T2 angry", ylim=c(.6, .90)), f[f$target2=="angry",])
+evalq(interaction.plot(lag, target1, accOr, main="ACC OR T2 neutral", ylim=c(.6, .90)), f[f$target2=="neutral",])
+evalq(interaction.plot(lag, target1, accOr, main="ACC OR T2 angry", ylim=c(.6, .90)), f[f$target2=="angry",])
+evalq(interaction.plot(lag, target1, accn, main="ACC N T2 angry", ylim=c(.4, 1)), f[f$target2=="angry",])
+evalq(interaction.plot(lag, target1, accn, main="ACC NT2 neutral", ylim=c(.4, 1)), f[f$target2=="neutral",])
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, lag=lag, target1=target1, target2=target2), mean),
+data[data$nface==2,])
+l <- aov(accOr~lag*target1*target2+Error(suj/(lag*target1*target2)), data=e)
+summary(l)
+evalq(interaction.plot(target1, target2, accOr), e)
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, lag=lagC, target1=target1,
+hypnoC=hypnoC), mean),
+data[data$nface==2 & data$target2=="neutral",])
+l <- aov(accn~lag*target1*hypnoC+Error(suj/(lag*target1)), data=e)
+summary(l)
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, lag=lagCatComplete,
+target1=target1, hypnoC=hypnoC), mean),
+data[data$target2=="neutral",])
+par(mfrow=c(2,2))
+evalq(interaction.plot(lag, target1, accOr, main='low', ylim=c(.4, 1)), e[e$hypnoC==1,])
+evalq(interaction.plot(lag, target1, accOr, main='medium', , ylim=c(.4, 1)), e[e$hypnoC==2,])
+evalq(interaction.plot(lag, target1, accOr, main='high', , ylim=c(.4, 1)), e[e$hypnoC==3,])
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, target1=target1, target2=target2, hypnoC=hypnoC), mean),
+data[data$nface==2,])
+l <- aov(accOr~target1*target2*hypnoC+Error(suj/(target1*target2)), data=e)
+summary(l)
+l <- aov(accOr~lag*target1*target2+Error(suj/(lag*target1*target2)), data=e)
+summary(l)
+model.tables(l, type='means')
+f <- evalq(aggregate(list(accOr=accOr), list(target1=target1, target2=target2), mean), e)
+evalq(interaction.plot(target1, target2, accOr), e)
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, lag=lag, target1=target1, target2=target2, hypnoC=hypnoC), mean),
+data[data$nface==2,])
+l <- aov(accOr~lag*target1*target2*hypnoC+Error(suj/(lag*target1*target2)), data=e)
+summary(l)
+model.tables(l, type='means')
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, target1=target1, target2=target2, hypnoC=hypnoC), mean),
+data[data$nface==2,])
+l <- aov(accn~target1*target2*hypnoC+Error(suj/(target1*target2)), data=e)
+summary(l)
+model.tables(l, type='means')
+par(mfrow=c(2,2))
+evalq(interaction.plot(target1, target2, acc0r, main="low", ylim=c(.67, .77)), e[e$hypnoC==1,])
+evalq(interaction.plot(target1, target2, accOr, main="medium", ylim=c(.67, .77)), e[e$hypnoC==2,])
+evalq(interaction.plot(target1, target2, accOr, main="high", ylim=c(.67, .77)), e[e$hypnoC==3,])
+ef <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, target1=target1, target2=target2), mean),
+data[data$nface==2,])
+evalq(interaction.plot(target1, target2, accOr, main="global", ylim=c(.67, .77)), ef)
+l <- aov(accOr~lag*target1*target2+Error(suj/(lag*target1*target2)), data=e)
+summary(l)
+model.tables(l, type='means')
+f <- evalq(aggregate(list(accOr=accOr), list(target1=target1, target2=target2), mean), e)
+evalq(interaction.plot(target1, target2, accOr), e)
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, lag=lag, target1=target1, target2=target2, hypnoC=hypnoC), mean),
+data[data$nface==2,])
+l <- aov(accOr~lag*target1*target2*hypnoC+Error(suj/(lag*target1*target2)), data=e)
+summary(l)
+model.tables(l, type='means')
+e <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, target1=target1, target2=target2, hypnoC=hypnoC), mean),
+data[data$nface==2,])
+l <- aov(accn~target1*target2*hypnoC+Error(suj/(target1*target2)), data=e)
+summary(l)
+model.tables(l, type='means')
+par(mfrow=c(2,2))
+evalq(interaction.plot(target1, target2, acc0r, main="low", ylim=c(.67, .77)), e[e$hypnoC==1,])
+evalq(interaction.plot(target1, target2, accOr, main="medium", ylim=c(.67, .77)), e[e$hypnoC==2,])
+evalq(interaction.plot(target1, target2, accOr, main="high", ylim=c(.67, .77)), e[e$hypnoC==3,])
+ef <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, target1=target1, target2=target2), mean),
+data[data$nface==2,])
+evalq(interaction.plot(target1, target2, accOr, main="global", ylim=c(.67, .77)), ef)
+evalq(interaction.plot(target1, target2, acc0r, main="low", ylim=c(.67, .77)), e[e$hypnoC==1,])
+evalq(interaction.plot(target1, target2, accOr, main="medium", ylim=c(.67, .77)), e[e$hypnoC==2,])
+evalq(interaction.plot(target1, target2, accOr, main="low", ylim=c(.67, .77)), e[e$hypnoC==1,])
+evalq(interaction.plot(target1, target2, accOr, main="low", ylim=c(.67, .77)), e[e$hypnoC==1,])
+evalq(interaction.plot(target1, target2, accOr, main="medium", ylim=c(.67, .77)), e[e$hypnoC==2,])
+evalq(interaction.plot(target1, target2, accOr, main="high", ylim=c(.67, .77)), e[e$hypnoC==3,])
+ef <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, target1=target1, target2=target2), mean),
+data[data$nface==2,])
+evalq(interaction.plot(target1, target2, accOr, main="global", ylim=c(.67, .77)), ef)
+par(mfrow=c(2,2))
+evalq(interaction.plot(target1, target2, accn, main="low", ylim=c(.7, .82)), e[e$hypnoC==1,])
+evalq(interaction.plot(target1, target2, accn, main="medium", ylim=c(.7, .82)), e[e$hypnoC==2,])
+evalq(interaction.plot(target1, target2, accn, main="high", ylim=c(.7, .82)), e[e$hypnoC==3,])
+ef <- evalq(aggregate(list(accOr=accOr, accn=accn), list(suj=suj, target1=target1, target2=target2), mean),
+data[data$nface==2,])
+evalq(interaction.plot(target1, target2, accOr, main="global", ylim=c(.67, .77)), ef)
+library(lme4)
+contrasts(data$target1)<-contr.sum(2)
+contrasts(data$target2)<-contr.sum(2)
+contrasts(data$hypnoC)<-contr.sum(3)
+contrasts(data$lagC)<-contr.sum(2)
+l <- glmer(accn~lagC*target1*target2*hypnoC+(1|suj), family='binomial', data=data)
+setwd("C:/Users/subcomarc/Google Drive/R/")
+data <- read.table(file="C:/Users/subcomarc/Google Drive/R/DataTable RAW.txt", header=T)
+source("C:/Users/subcomarc/Google Drive/R/R_Lib_Sackur.r")
+library('xtable')
+library('knitr')
+setwd("C:/Users/subcomarc/Google Drive/R/")
+setwd("C:/Users/lscpuser/Google Drive/R/")
+source("C:/Users/lscpuser/Google Drive/R/R_Lib_Sackur.r")
+#setwd("C:/Users/subcomarc/Google Drive/R/")
+#source("C:/Users/subcomarc/Google Drive/R/R_Lib_Sackur.r")
+library('xtable')
+library('knitr')
+library('lme4')
+library('car')
+library('multcomp')
+library('lsmeans')
+library("Hmisc")
+library("HH")
+load("blinkData.r")
+data$target1 <- factor(data$target1)
+data$target2 <- factor(data$target2)
+data$hypnoC <- factor(data$hypnoC)
+#data$suj <- factor(data$suj)
+data$lag <- factor(data$lag)
+data$lagC <- factor(data$lagC)
+data$lagComplete <- factor(data$lagComplete)
+data$lagCatComplete <- factor(data$lagCatComplete)
+contrasts(data$target1)=contr.sum(2)
+contrasts(data$target2)=contr.sum(2)
+contrasts(data$hypnoC)=contr.sum(4)
+contrasts(data$lag)=contr.sum(6)
+contrasts(data$lagC)=contr.sum(2)
+contrasts(data$lagComplete)=contr.sum(7)
+contrasts(data$lagCatComplete)=contr.sum(3)
+sujs <- unique(data$suj);
+i <- 1
+df <- data
+## ## We recode t1 et t2 levels, because it makes things easier
+## ## aftewards.
+df$T1 <- paste(df$target1, "t1", sep='')
+df[df$nface==1,]$T1 <- 'absent'
+df$T2 <- paste(df$target2, "t2", sep='')
+## ## We write the date for each subject in different files, in different
+## ## folder so as to parallelize by hand.
+for (s in sujs){
+folder <- paste("C:/Users/lscpuser/Google Drive/DM/d", ceiling(i/12), "/", sep='')
+temp <- evalq(data.frame(acc=accOr, rt=rtOr/1000, target1=T1,
+target2=T2, lag=lagC),
+df[df$suj==s,])
+write.table(temp, file=paste(folder, s, ".txt", sep=''),
+row.names=FALSE, col.names=FALSE, quote=FALSE)
+i <- i+1
+}
+folder <- paste("C:/Users/lscpuser/Google Drive/DM/d", ceiling(i/12), "/", sep='')
+temp <- evalq(data.frame(acc=accOr, rt=rtOr/1000, target1=T1,
+target2=T2, lag=lagC),
+df[df$suj==102,])
+write.table(temp, file=paste(folder, s, ".txt", sep=''),
+row.names=FALSE, col.names=FALSE, quote=FALSE)
+help("write.table")
+paste(folder, s, ".txt", sep='')
+write.table(temp, file=paste(folder, s, ".txt", sep=''),
+row.names=FALSE, col.names=FALSE, quote=FALSE)
+folder <- paste("C:/DM/d", ceiling(i/12), "/", sep='')
+write.table(temp, file=paste(folder, s, ".txt", sep=''),
+row.names=FALSE, col.names=FALSE, quote=FALSE)
+sujs
+for (s in sujs){
+folder <- paste("C:/Users/lscpuser/Google Drive/R/d", ceiling(i/12), "/", sep='')
+temp <- evalq(data.frame(acc=accOr, rt=rtOr/1000, target1=T1,
+target2=T2, lag=lagC),
+df[df$suj==102,])
+write.table(temp, file=paste(folder, s, ".txt", sep=''),
+row.names=FALSE, col.names=FALSE, quote=FALSE)
+i <- i+1
+}
+for (s in sujs){
+folder <- paste("C:/Users/lscpuser/Google Drive/R/DM/d", ceiling(i/12), "/", sep='')
+temp <- evalq(data.frame(acc=accOr, rt=rtOr/1000, target1=T1,
+target2=T2, lag=lagC),
+df[df$suj==102,])
+write.table(temp, file=paste(folder, s, ".txt", sep=''),
+row.names=FALSE, col.names=FALSE, quote=FALSE)
+i <- i+1
+}
+fdm <- do.call(rbind, lapply(1:5, function(n){
+fdmImp <- readFastDMComplete(file=paste("diffusion/d", n,
+'/blinkFinal.out', sep=''),
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+}))
+source("C:/Users/lscpuser/Google Drive/R/R_Lib_Sackur.r")
+fdm <- do.call(rbind, lapply(1:5, function(n){
+fdmImp <- readFastDMComplete(file=paste("diffusion/d", n,
+'/blinkFinal.out', sep=''),
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+}))
+help(readFastDMComplete)
+??readFastDMComplete
+edit(readFastDMComplete)
+open(readFastDMComplete)
+edit(readFastDM)
+for (s in sujs){
+#     folder <- paste("C:/Users/lscpuser/Google Drive/R/DM", ceiling(i/12), "/", sep='')
+folder <- "C:/Users/lscpuser/Google Drive/R/DM/"
+temp <- evalq(data.frame(acc=accOr, rt=rtOr/1000, target1=T1,
+target2=T2, lag=lagC),
+df[df$suj==s,])
+write.table(temp, file=paste(folder, s, ".txt", sep=''),
+row.names=FALSE, col.names=FALSE, quote=FALSE)
+i <- i+1
+}
+fdmImp <- readFastDMComplete(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+edit(readFastDMComplete)
+edit(readFastDM)
+fdmImp <- readFastDM(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+edit(readFastDM)
+fdmImp <- readFastDMComplete(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+fdmImp <- readFastDM(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+edit(readFastDM)
+edit(readFastDM)
+source('C:/Users/lscpuser/Google Drive/R/R_Lib_Sackur.r', echo=TRUE)
+fdmImp <- readFastDM(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+source('C:/Users/lscpuser/Google Drive/R/R_Lib_Sackur.r', echo=TRUE)
+fdmImp <- readFastDM(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+source('C:/Users/lscpuser/Google Drive/R/R_Lib_Sackur.r', echo=TRUE)
+fdmImp <- readFastDM(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+fdmImp <- readFastDMComplete(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+edit(readFastDMFixed)
+edit(readFastDMComplete)
+help(assign)
+help(dimnames)
+file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt"
+source('C:/Users/lscpuser/Google Drive/R/R_Lib_Sackur.r', echo=TRUE)
+fdmImp <- readFastDMComplete(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+fdm <- read.table(file=file, header=TRUE)
+cols <-  dimnames(fdm)[[2]]
+assign(dv, unlist(fdm[,grep(paste('^',dv, '_', sep=''), cols)]))
+dv='v'
+assign(dv, unlist(fdm[,grep(paste('^',dv, '_', sep=''), cols)]))
+View(fdm)
+i <- 0
+reps <- prod(unlist(lapply(flevels, function(s){length(s)})))
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+dvs=c('v','a','t0')
+factors=c('target1', 'target2', 'lag')
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late'))
+reps <- prod(unlist(lapply(flevels, function(s){length(s)})))
+df <- data.frame(rep(fdm$dataset, reps))
+help(unlist)
+help("prod")
+df <- data.frame(rep(fdm$dataset, reps))
+for (f in factors){
+i <- i+1
+assign(f, rep(flevels[[i]][1], length(get(dv))))
+for (j in 2:length(flevels[[i]])){
+tmp <- get(f)
+tmp[grep(paste('_', flevels[[i]][j], sep=''), names(get(dv)))] <- flevels[[i]][j]
+assign(f, tmp)
+}
+df <- cbind(df, get(f))
+}
+unlist(lapply(flevels, function(s){length(s)}))
+get(dv)
+length(get(dv))
+f=1
+f="target1"
+assign(f, rep(flevels[[i]][1], length(get(dv))))
+length(flevels[[i]])
+help(get)
+load("Fast-dm_diffusion_parameters.R")
+View(fdm)
+fdmImp <- readFastDMComplete(file="C:/Users/lscpuser/Google Drive/R/DM/blinkFinal.txt",
+dvs=c('v','a','t0'),
+factors=c('target1', 'target2', 'lag'),
+flevels=list(c('absent', 'angryt1', 'neutralt1'),
+c('angryt2', 'neutralt2'),
+c('early', 'late')))
+View(fdmImp)
+View(fdm)
+f <- evalq(aggregate(list(hypnoC=hypnoC), list(suj=suj), unique), data[data$suj>300])
+f <- evalq(aggregate(list(hypnoC=hypnoC), list(suj=suj), unique), data[data$suj>300,])
+fdmImp <-merge(fdmImp,f)
+fdmtest <-merge(fdm,fdmImp)
+fdmtest <-cbind(fdm,fdmImp)
+fdmtest <-rbind(fdm,fdmImp)
+View(fdmtest)
+fdm <-rbind(fdm,fdmImp) #and now let's bring them all together like a happy family
+save(fdm, file="Fast-dm_diffusion_parameters.R")
+load("Fast-dm_diffusion_parameters.R")
+qqnorm(residuals(fdm))
+View(fdm)
+hist(residuals(fdm))
+Test<-glmer(v~IsPrimed*hypnoC*target1*target2*lag+(1|suj), family="binomial", data=fdm)
+Test<-glmer(v~hypnoC*target1*target2*lag+(1|suj), family="binomial", data=fdm)
+fdm$target1 <- factor(fdm$target1)
+fdm$target2 <- factor(fdm$target2)
+fdm$hypnoC <- factor(fdm$hypnoC)
+fdm$lag <- factor(fdm$lag)
+contrasts(fdm$target1)=contr.sum(3)
+contrasts(fdm$target2)=contr.sum(2)
+contrasts(fdm$hypnoC)=contr.sum(4)
+contrasts(fdm$lag)=contr.sum(6)
+contrasts(fdm$lag)=contr.sum(7)
+contrasts(fdm$lag)=contr.sum(5)
+contrasts(fdm$lag)=contr.sum(2)
+Test<-glmer(v~hypnoC*target1*target2*lag+(1|suj), family="binomial", data=fdm)
+Test<-lmer(v~hypnoC*target1*target2*lag+(1|suj), data=fdm)
+qqnorm(residuals(Test))
+plot(fitted(Test),residuals(Test))
+fdm$v
+fdm$logv<-log(v)
+fdm$v<-as.numeric(as.character(v))
+fdm$v<-as.numeric(as.character(fdm$v))
+fdm$logv<-log(v)
+fdm$logv<-log(fdm$v)
+fdm$logv[fdm$logv==NaN]<-0
+Test<-lmer(logv~hypnoC*target1*target2*lag+(1|suj), data=fdm)
+plot(fitted(xmdl),residuals(xmdl))#Homoskedacity seems ok after log transform
+plot(fitted(fdm),residuals(fdm))#Homoskedacity seems ok after log transform
+fdm$logv<-log(fdm$v); fdm$logv[fdm$logv==NaN]<-0.1
+Test<-lmer(logv~hypnoC*target1*target2*lag+(1|suj), data=fdm)
+plot(fitted(Test),residuals(Test))#Homoskedacity seems ok after log transform
+fdm$logv<-log(fdm$v); fdm$logv[fdm$logv==NaN]<-0.001
+Test<-lmer(logv~hypnoC*target1*target2*lag+(1|suj), data=fdm)
+plot(fitted(Test),residuals(Test))#Homoskedacity seems ok after log transform
+Test<-lmer(v~hypnoC*target1*target2*lag+(1|suj), data=fdm)
+plot(fitted(Test),residuals(Test)) # Residual plot doesn't show patterns, linearity is ok
+Test<-lmer(a~hypnoC*target1*target2*lag+(1|suj), data=fdm)
+plot(fitted(Test),residuals(Test)) # Residual plot doesn't show patterns, linearity is ok
+qqnorm(residuals(Test)) # Residuals are normal/linear
+fdm$a<-as.numeric(as.character(fdm$a)) #Transforming to check for homoskedacity
+fdm$loga<-log(fdm$a); fdm$logv[fdm$loga==NaN]<-0.001
+Test<-lmer(loga~hypnoC*target1*target2*lag+(1|suj), data=fdm)
+plot(fitted(Test),residuals(Test))#Homoskedacity seems ok enough after log transform
+plot(fitted(Test),residuals(Test))#Homoskedacity seems ok enough after log transform
+Test<-lmer(t0~hypnoC*target1*target2*lag+(1|suj), data=fdm)
+plot(fitted(Test),residuals(Test)) # Residual plot doesn't show patterns, linearity is ok
+qqnorm(residuals(Test)) # Residuals are normal/linear
+fdm$v<-as.numeric(as.character(fdm$t0)) #Transforming to check for homoskedacity
+fdm$logv<-log(fdm$t0); fdm$logv[fdm$logt0==NaN]<-0.001
+Test<-lmer(logt0~hypnoC*target1*target2*lag+(1|suj), data=fdm)
+plot(fitted(Test),residuals(Test))#Homoskedacity seems ok enou

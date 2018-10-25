@@ -1,0 +1,5 @@
+setwd("C:/Users/subcomarc/Google Drive/R/")
+source("C:/Users/subcomarc/Google Drive/R/R_Lib_Sackur.r")
+load("TunnelData.r")
+e <- evalq(aggregate(list(rt=rt), list(suj=suj, hyp=hyp, IsPrimed=IsPrimed), median),
+data[(data$BlockNum=="1") | (data$BlockNum=="4"),])
