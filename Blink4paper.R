@@ -10,8 +10,9 @@
 #source("C:/Users/lscpuser/Google Drive/R/R_Lib_Sackur.r")
 #setwd("C:/Users/subcomarc/Google Drive/R")
 #source("C:/Users/subcomarc/Google Drive/R/R_Lib_Sackur.r")
-setwd("/home/subcomarc/Google_Drive/R/")
-source("/home/subcomarc/Google_Drive/R/R_Lib_Sackur.r")
+#setwd("/home/subcomarc/Google_Drive/R/")
+#source("/home/subcomarc/Google_Drive/R/R_Lib_Sackur.r")
+source("R_Lib_Sackur.r")
 
 library("nlme")
 library('xtable')
@@ -20,8 +21,11 @@ library('lme4')
 library('car')
 library('multcomp')
 library('lsmeans')
+library('emmeans')
 library("Hmisc")
-library("HH")
+library("openxlsx")
+library("xlsx")
+library("ggplot2")
 
 
 options(xtable.floating = FALSE)
@@ -33,16 +37,17 @@ options(xtable.timestamp = "")
 #################### ####################################################
 
 #load("blinkData.r")
-load("/home/subcomarc/Google_Drive/R/blinkData.r")
+#load("/home/subcomarc/Google_Drive/R/blinkData.r")
 #load("/media/subcomarc/201ED7AF1ED77BEA/Documents and Settings/subcomarc/Google Drive/R/blinkData.r")
 #data$hypnoC[data$hypnoC==4]<-0 # If you are going to plot, so that no hypno is next to low
+load("/home/subcomarc/WORK/R/blinkData.R")
 
 ####################### ########################################
 #Prepping the data for stats and adding some convenient columns#
 ###################### ######################################### ##################
 
 #data <- read.table(file="C:/Users/lscpuser/Google Drive/R/BlinkTable.txt", header=T)
-data <- read.table(file="C:/Users/subcomarc/Google Drive/R/BlinkTable.txt", header=T)
+data <- read.table(file="/home/subcomarc/WORK/R_Others/BlinkTable.txt", header=T)
 
 data <- droplevels(data[data$SubName!=101,])
 data$suj <- data$SubName
@@ -170,7 +175,7 @@ data$NewComp[data$suj>=400]<-1
 
 
 
-save(data, file='blinkData.R')
+save(data, file='/home/subcomarc/WORK/R/blinkData.R')
 
 
 
@@ -1121,3 +1126,78 @@ load("Fast-dm_diffusion_parameters_Nohypno.R")
  arrows(x0=xs, y0=y0, x1=xs, y1=y1, length=0,
         angle=90,code=3, lty=1, lwd=2)
  
+ 
+ ###################### ###################### ######################
+ #NICER PLOTS#
+ ###################### ###################### ######################
+ 
+ e <- evalq(aggregate(list(accOr=accOr), list(suj=suj, lagC=lagC), 
+                      function(x){mean(x)*100}),data)
+ 
+ ggplot(e, aes(x=lagC, y=accOr, fill=lagC)) + #
+   #ggplot(data[data$hypnosis=="Control",], aes(x=whenexp, y=IASTAscore)) + #Differences in SO and FR with delta and effective  
+   # scale_shape_discrete(solid=T, legend=F)
+   #geom_point(aes(size=3, color=IASTAeffective)) +
+   #geom_line(aes(group=patient, x=whenexp, y=IASTAscore, color=IASTAeffective)) +
+   #geom_line(size=1) +
+   geom_boxplot(size=1) +
+   #geom_text() + #remember to add label variable in then aes on top if you use this
+   # annotate("text", label=mean(deltadata[deltadata$hypnosis == 1,]$SODelta), x=2, y=86, size=8, colour="mediumslateblue") +
+   # annotate("text", label=mean(deltadata[deltadata$hypnosis == 0,]$SODelta), x=1, y=86, size=8, colour="lightblue1") +
+   #annotate("text", label=ceiling(mean(deltadata[deltadata$hypnosis == 0,]$IASTADelta)), x=1, y=-12, size=8, colour="lightblue1") +
+   #annotate("text", label=ceiling(mean(deltadata[deltadata$hypnosis == 1,]$IASTADelta)), x=2, y=-3, size=8, colour="mediumslateblue") +
+   # geom_col(position = "dodge") +
+   #scale_fill_discrete(labels=c("Control", "Hypnosis")) +
+   scale_fill_manual(labels=c("Early", "Late"), values = c("lightblue1","mediumslateblue")) +
+   #scale_color_manual(labels=c("Control", "Hypnosis"), values = c("red","lightblue1", "black")) +
+   #geom_text(size=14, color="black", aes(x=1.5, y=26, label="***")) +
+   #geom_segment(size=2, color="black", aes(x=1,xend=2,y=25,yend=25)) +
+   #geom_segment(size=2, color="black", aes(x=0.75,xend=0.75,y=9,yend=15.1)) + #for barplot
+   #geom_segment(size=2, color="black", aes(x=2.25,xend=2.25,y=6,yend=15.1)) + #for barplot
+   #stat_summary(geom = "errorbar", position = "dodge",  ymin=c(7)-2, ymax=7+2) + #for barplot
+   labs(title = "Orientation Task Performance\n", 
+        x = "\n", 
+        y = "% Correct") +
+   # geom_line() +
+   # scale_fill_manual(values = c("red", "blue")) +
+   #ggtitle("") +
+   #theme(axis.text.x = element_text(angle=0, face="bold", colour="black")) +
+   theme_bw() +
+   theme(legend.text = element_text(angle=0, face="bold", colour="black", size="14"),
+         legend.title = element_text(angle=0, face="bold", colour="white"),
+         panel.grid.major = element_blank(), # panel.grid.minor = element_blank(), 
+         axis.line=element_line(size=1, color="black"), panel.border=element_blank(), 
+         axis.text.x=element_text(size=14), axis.title.x=element_text(size=16),
+         axis.text.y=element_text(size=14), axis.title.y=element_text(size=16),
+         plot.title=element_text(size=20, face="bold", color="black"))
+ #xlab(NULL)
+ 
+ e <- evalq(aggregate(list(accOr=accOr), list(suj=suj, lagCatComplete=lagCatComplete), 
+                      function(x){mean(x)*100}),data)
+ f <- evalq(aggregate(list(accOr=accOr), list(lagCatComplete=lagCatComplete), 
+                      sd),data)
+ g <- evalq(aggregate(list(accOr=accOr), list(lagCatComplete=lagCatComplete), 
+                      mean),data)
+ 
+ ggplot(e, aes(x=lagCatComplete, y=accOr, fill=lagCatComplete)) + #
+   geom_boxplot(size=1) +
+   scale_fill_manual(labels=c("Single Target", "Early Lag", "Late Lag"), values = c("lightblue1","mediumslateblue","lightblue4")) +
+   geom_text(size=14, color="black", aes(x=1.5, y=55, label="***")) +
+   geom_segment(size=2, color="black", aes(x=1.1,xend=1.9,y=53,yend=53)) +
+   geom_text(size=14, color="black", aes(x=2.5, y=55, label="***")) +
+   geom_segment(size=2, color="black", aes(x=2.1,xend=2.9,y=53,yend=53)) +
+   geom_text(size=14, color="black", aes(x=2, y=104, label="n.s.")) +
+   geom_segment(size=2, color="black", aes(x=1,xend=3,y=101,yend=101)) +
+   labs(title = "Orientation Task Performance\n", 
+        x = "\n ", 
+        y = "% Correct") +
+   theme_bw() +
+   theme(legend.text = element_text(angle=0, face="bold", colour="black", size="14"),
+         legend.title = element_text(angle=0, face="bold", colour="white"),
+         panel.grid.major = element_blank(), # panel.grid.minor = element_blank(), 
+         axis.line=element_line(size=1, color="black"), panel.border=element_blank(), 
+         axis.text.x=element_text(size=0), axis.title.x=element_text(size=0),
+         axis.text.y=element_text(size=14), axis.title.y=element_text(size=16),
+         plot.title=element_text(size=20, face="bold", color="black"))
+ #xlab(NULL)
+   
